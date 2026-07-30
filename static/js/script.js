@@ -109,7 +109,7 @@ function initDropzone() {
 }
 
 /**
- * HTML5 Webcam Stream and Capture
+ * HTML5 Webcam Stream and Capture (Handles multiple sequential captures cleanly)
  */
 let webcamStream = null;
 
@@ -119,10 +119,12 @@ function initWebcam() {
     const stopWebcamBtn = document.getElementById('stopWebcamBtn');
     const webcamVideo = document.getElementById('webcamVideo');
     const webcamCanvas = document.getElementById('webcamCanvas');
+    const webcamModal = document.getElementById('webcamModal');
 
     if (!startWebcamBtn || !webcamVideo) return;
 
-    startWebcamBtn.addEventListener('click', async () => {
+    async function startCamera() {
+        if (webcamStream) return;
         try {
             webcamStream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
@@ -131,14 +133,22 @@ function initWebcam() {
             await webcamVideo.play();
             if (captureWebcamBtn) captureWebcamBtn.disabled = false;
         } catch (err) {
-            showToast('Webcam Error', 'Unable to access camera: ' + err.message, 'danger');
+            showToast('Camera Error', 'Unable to access camera: ' + err.message, 'danger');
         }
-    });
+    }
+
+    startWebcamBtn.addEventListener('click', startCamera);
+
+    // Also auto-start when Bootstrap modal opens
+    if (webcamModal) {
+        webcamModal.addEventListener('shown.bs.modal', startCamera);
+        webcamModal.addEventListener('hidden.bs.modal', stopWebcamStream);
+    }
 
     if (captureWebcamBtn) {
         captureWebcamBtn.addEventListener('click', () => {
-            if (!webcamStream || !webcamVideo.videoWidth || !webcamVideo.videoHeight) {
-                showToast('Camera Notice', 'Camera frame is not ready. Please wait a second and try again.', 'warning');
+            if (!webcamVideo || !webcamVideo.videoWidth || webcamVideo.videoWidth === 0) {
+                showToast('Camera Notice', 'Camera frame is initializing. Please wait a second and press Capture again.', 'warning');
                 return;
             }
 
@@ -147,14 +157,20 @@ function initWebcam() {
             webcamCanvas.height = webcamVideo.videoHeight;
             context.drawImage(webcamVideo, 0, 0, webcamCanvas.width, webcamCanvas.height);
             
-            // Compress JPEG at 85% quality for 25x faster network transmission & tiny payload
+            // Compress JPEG at 85% quality
             const imageDataUrl = webcamCanvas.toDataURL('image/jpeg', 0.85);
+            
+            // Verify image payload is not empty
+            if (!imageDataUrl || imageDataUrl.length < 500) {
+                showToast('Capture Error', 'Failed to grab camera frame. Please try again.', 'warning');
+                return;
+            }
+
             stopWebcamStream();
             
-            // Hide camera modal backdrop immediately
-            const modalEl = document.getElementById('webcamModal');
-            if (modalEl) {
-                const bsModal = bootstrap.Modal.getInstance(modalEl);
+            // Close camera modal
+            if (webcamModal) {
+                const bsModal = bootstrap.Modal.getInstance(webcamModal);
                 if (bsModal) bsModal.hide();
             }
             
@@ -181,7 +197,7 @@ function initWebcam() {
                 if (data.success && data.redirect_url) {
                     window.location.href = data.redirect_url;
                 } else {
-                    showToast('Scan Error', data.error || 'Failed to process camera capture.', 'danger');
+                    showToast('Scan Notice', data.error || 'Failed to process camera capture.', 'warning');
                 }
             })
             .catch(err => {
@@ -200,6 +216,10 @@ function stopWebcamStream() {
     if (webcamStream) {
         webcamStream.getTracks().forEach(track => track.stop());
         webcamStream = null;
+    }
+    const webcamVideo = document.getElementById('webcamVideo');
+    if (webcamVideo) {
+        webcamVideo.srcObject = null;
     }
 }
 
