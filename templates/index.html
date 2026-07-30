@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}DocScanner.ai — Intelligent Document Scanner & OCR{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-center text-lg-start">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <div class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-3">
+                    <i class="bi bi-stars me-1"></i> Computer Vision & AI Powered
+                </div>
+                <h1 class="hero-title mb-3">Transform Messy Photos into Pristine Documents</h1>
+                <p class="hero-subtitle mb-4">
+                    Automatically detect document boundaries, correct perspective skew, enhance readability, and extract accurate text instantly with Tesseract OCR.
+                </p>
+                <div class="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start gap-3">
+                    <a href="{{ url_for('scanner') }}" class="btn btn-primary btn-lg rounded-pill px-4 shadow">
+                        <i class="bi bi-scanner me-2"></i> Open Document Scanner
+                    </a>
+                    <a href="{{ url_for('about') }}" class="btn btn-outline-secondary btn-lg rounded-pill px-4">
+                        <i class="bi bi-cpu me-2"></i> How It Works
+                    </a>
+                </div>
+                
+                <!-- Quick Supported Formats -->
+                <div class="mt-4 pt-3 d-flex align-items-center justify-content-center justify-content-lg-start gap-3 text-muted small">
+                    <span><i class="bi bi-filetype-jpg me-1 text-primary"></i> JPG / JPEG</span>
+                    <span><i class="bi bi-filetype-png me-1 text-primary"></i> PNG</span>
+                    <span><i class="bi bi-filetype-pdf me-1 text-primary"></i> PDF</span>
+                    <span><i class="bi bi-file-earmark-image me-1 text-primary"></i> TIFF / BMP</span>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="position-relative">
+                    <div class="glass-card p-3 p-md-4 text-center">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="p-2 border rounded-4 bg-body-tertiary">
+                                    <span class="badge bg-secondary mb-2">Original Input</span>
+                                    <img src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=500&auto=format&fit=crop&q=60" 
+                                         alt="Original Skewed Document" 
+                                         class="img-fluid rounded shadow-sm opacity-75" 
+                                         style="max-height: 200px; object-fit: cover;">
+                                    <div class="small text-danger mt-1"><i class="bi bi-x-circle"></i> Distorted Angle</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 border border-primary rounded-4 bg-primary-subtle">
+                                    <span class="badge bg-primary mb-2">Perspective Warped</span>
+                                    <img src="https://images.unsplash.com/photo-1568667256549-094345857637?w=500&auto=format&fit=crop&q=60" 
+                                         alt="Processed Scanned Document" 
+                                         class="img-fluid rounded shadow-sm" 
+                                         style="max-height: 200px; object-fit: cover;">
+                                    <div class="small text-success mt-1"><i class="bi bi-check-circle-fill"></i> Flat 4-Point Crop</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 p-3 bg-body rounded-3 border text-start">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="fw-bold text-primary"><i class="bi bi-search me-1"></i> Extracted OCR Text</small>
+                                <span class="badge bg-success">99.2% Confidence</span>
+                            </div>
+                            <code class="small text-secondary">
+                                ANNUAL FINANCIAL REPORT 2026<br>
+                                Revenue Growth: +24.8% | Net Margin: 18.5%
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Feature Cards Section -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="text-center max-width-md mx-auto mb-5">
+            <h2 class="fw-bold">Enterprise-Grade Computer Vision Features</h2>
+            <p class="text-secondary">Everything you need to digitize receipts, forms, invoices, and hand-held notes.</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-bounding-box-circles"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Auto Boundary Detection</h5>
+                    <p class="text-secondary small mb-0">
+                        Uses Canny Edge Detection and Contour Polygon approximation to automatically locate the four corners of any document.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-aspect-ratio"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">4-Point Perspective Warp</h5>
+                    <p class="text-secondary small mb-0">
+                        Eliminates camera angle tilt and perspective distortion, flattening tilted photos into perfect top-down rectangular documents.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-sliders"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Adaptive Thresholding</h5>
+                    <p class="text-secondary small mb-0">
+                        Removes shadows, background noise, and uneven lighting to produce clean, high-contrast black-and-white scanned pages.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-file-earmark-font"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Tesseract OCR Engine</h5>
+                    <p class="text-secondary small mb-0">
+                        Converts scanned document images into searchable text, computing character counts, word counts, and accuracy confidence scores.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-camera-video"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">HTML5 Live Webcam Scan</h5>
+                    <p class="text-secondary small mb-0">
+                        Capture physical paper directly using your laptop or mobile camera with live preview and instant processing.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Multi-Format Export</h5>
+                    <p class="text-secondary small mb-0">
+                        Download results as high-resolution PNG scanned images, raw TXT files, or formatted ReportLab PDF document reports.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Workflow Step-by-Step -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">How The Document Scanner Works</h2>
+            <p class="text-secondary">4 effortless steps from camera snapshot to searchable text document.</p>
+        </div>
+        
+        <div class="row g-4 text-center">
+            <div class="col-md-3">
+                <div class="p-3">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 1.5rem; font-weight: 700;">1</div>
+                    <h6 class="fw-bold">Upload or Capture</h6>
+                    <p class="small text-secondary">Upload an image file or capture a photo using your live webcam.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 1.5rem; font-weight: 700;">2</div>
+                    <h6 class="fw-bold">Edge Detection</h6>
+                    <p class="small text-secondary">OpenCV algorithms detect document corners and compute perspective matrix.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 1.5rem; font-weight: 700;">3</div>
+                    <h6 class="fw-bold">Enhance & Threshold</h6>
+                    <p class="small text-secondary">Adaptive Gaussian thresholding removes shadows and sharpens characters.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 1.5rem; font-weight: 700;">4</div>
+                    <h6 class="fw-bold">Extract & Export</h6>
+                    <p class="small text-secondary">Copy extracted text or download formatted PDF, TXT, and scanned image files.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CTA Banner -->
+        <div class="glass-card mt-5 p-5 text-center bg-primary text-white border-0" style="background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);">
+            <h3 class="fw-bold mb-3">Ready to digitize your paper documents?</h3>
+            <p class="lead mb-4 opacity-90">Experience instantaneous perspective correction and text recognition now.</p>
+            <a href="{{ url_for('scanner') }}" class="btn btn-light btn-lg rounded-pill px-5 text-primary fw-bold shadow">
+                Launch Scanner Now <i class="bi bi-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

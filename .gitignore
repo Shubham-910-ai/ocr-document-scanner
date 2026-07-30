@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+uploads/*
+!uploads/.gitkeep
+processed/*
+!processed/.gitkeep
+downloads/*
+!downloads/.gitkeep
+scratch/
+.env

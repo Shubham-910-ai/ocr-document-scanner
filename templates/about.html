@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}About Computer Vision & OCR Pipeline{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="text-center max-width-md mx-auto mb-5">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 mb-2">
+            Technical Architecture
+        </span>
+        <h2 class="fw-bold">How The Computer Vision Pipeline Works</h2>
+        <p class="text-secondary">A deep dive into OpenCV image processing algorithms and Tesseract OCR integration.</p>
+    </div>
+
+    <!-- Algorithm Deep Dive Cards -->
+    <div class="row g-4">
+        <!-- 1. Edge Detection & Blur -->
+        <div class="col-md-6">
+            <div class="glass-card h-100 p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="feature-icon mb-0 me-3">
+                        <i class="bi bi-eye"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">1. Pre-Processing & Canny Edges</h5>
+                        <span class="badge bg-secondary-subtle text-secondary">cv2.Canny & cv2.GaussianBlur</span>
+                    </div>
+                </div>
+                <p class="text-secondary small">
+                    The input photo is converted to single-channel Grayscale and smoothed using a 5x5 Gaussian Kernel to reduce digital camera noise. 
+                    Canny Edge Detection isolates steep intensity gradients to expose the sharp borders of paper against backgrounds.
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. Contour Polygon Approximation -->
+        <div class="col-md-6">
+            <div class="glass-card h-100 p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="feature-icon mb-0 me-3">
+                        <i class="bi bi-bounding-box-circles"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">2. Contour & Polygon Fitting</h5>
+                        <span class="badge bg-secondary-subtle text-secondary">cv2.findContours & cv2.approxPolyDP</span>
+                    </div>
+                </div>
+                <p class="text-secondary small">
+                    OpenCV retrieves continuous closed boundary contours. Contours are sorted by surface area, and Ramer-Douglas-Peucker algorithm 
+                    (<code>approxPolyDP</code>) simplifies curves into a 4-point polygon representing the document sheet.
+                </p>
+            </div>
+        </div>
+
+        <!-- 3. Perspective Transform -->
+        <div class="col-md-6">
+            <div class="glass-card h-100 p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="feature-icon mb-0 me-3">
+                        <i class="bi bi-aspect-ratio"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">3. 4-Point Perspective Warp</h5>
+                        <span class="badge bg-secondary-subtle text-secondary">cv2.getPerspectiveTransform</span>
+                    </div>
+                </div>
+                <p class="text-secondary small">
+                    Corner points are ordered (top-left, top-right, bottom-right, bottom-left). A 3x3 transformation matrix calculates perspective mapping, 
+                    warping trapezoidal angled document photos into flat, top-down rectangular views.
+                </p>
+            </div>
+        </div>
+
+        <!-- 4. Adaptive Thresholding -->
+        <div class="col-md-6">
+            <div class="glass-card h-100 p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="feature-icon mb-0 me-3">
+                        <i class="bi bi-sliders"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">4. Binarization & Enhancement</h5>
+                        <span class="badge bg-secondary-subtle text-secondary">cv2.adaptiveThreshold & CLAHE</span>
+                    </div>
+                </div>
+                <p class="text-secondary small">
+                    Adaptive Gaussian thresholding computes local thresholds across small pixel neighborhoods. Shadows, glares, and background blemishes 
+                    are completely eliminated, leaving high-contrast dark text on a pure white page.
+                </p>
+            </div>
+        </div>
+
+        <!-- 5. Tesseract OCR Engine -->
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="feature-icon mb-0 me-3">
+                        <i class="bi bi-cpu"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">5. Tesseract Optical Character Recognition (OCR)</h5>
+                        <span class="badge bg-primary-subtle text-primary">pytesseract & LSTM Neural Networks</span>
+                    </div>
+                </div>
+                <p class="text-secondary small mb-3">
+                    The enhanced document image is passed to the Tesseract OCR engine, utilizing Line-level LSTM (Long Short-Term Memory) recurrent neural networks 
+                    to recognize characters, layout structure, word bounding boxes, and confidence percentages.
+                </p>
+                <div class="row g-3 text-center">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-body-tertiary rounded-3 border">
+                            <i class="bi bi-file-text fs-4 text-primary mb-2 d-block"></i>
+                            <strong class="d-block small">Layout Analysis (PSM)</strong>
+                            <span class="extra-small text-muted">Page Segmentation Mode identifies text blocks and paragraphs.</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-body-tertiary rounded-3 border">
+                            <i class="bi bi-bar-chart-line fs-4 text-success mb-2 d-block"></i>
+                            <strong class="d-block small">Confidence Analysis</strong>
+                            <span class="extra-small text-muted">Computes character probability metrics per recognized word.</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-body-tertiary rounded-3 border">
+                            <i class="bi bi-translate fs-4 text-info mb-2 d-block"></i>
+                            <strong class="d-block small">Multi-Language Support</strong>
+                            <span class="extra-small text-muted">Supports English, Spanish, French, German, and 100+ languages.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

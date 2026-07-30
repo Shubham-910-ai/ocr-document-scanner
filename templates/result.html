@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Scan Results — {{ result.filename }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Top Bar Navigation & Actions -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
+        <div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 mb-2">
+                <i class="bi bi-check-circle-fill me-1"></i> Processing Completed
+            </span>
+            <h2 class="fw-bold mb-0">Document & OCR Results</h2>
+            <p class="text-secondary small mb-0">File: <strong>{{ result.filename }}</strong> &bull; Language: {{ result.language }}</p>
+        </div>
+        
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('download', file_type='image', scan_id=result.id) }}" class="btn btn-outline-primary rounded-pill">
+                <i class="bi bi-file-earmark-image me-1"></i> Image
+            </a>
+            <a href="{{ url_for('download', file_type='txt', scan_id=result.id) }}" class="btn btn-outline-secondary rounded-pill">
+                <i class="bi bi-file-earmark-text me-1"></i> TXT
+            </a>
+            <a href="{{ url_for('download', file_type='pdf', scan_id=result.id) }}" class="btn btn-primary rounded-pill shadow-sm">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+            </a>
+            <a href="{{ url_for('scanner') }}" class="btn btn-dark rounded-pill">
+                <i class="bi bi-plus-lg me-1"></i> New Scan
+            </a>
+        </div>
+    </div>
+
+    <!-- Metrics Bar -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="metric-card glass-card">
+                <div class="metric-value text-primary">{{ result.word_count }}</div>
+                <div class="metric-label">Words Extracted</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card glass-card">
+                <div class="metric-value text-info">{{ result.char_count }}</div>
+                <div class="metric-label">Characters</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card glass-card">
+                <div class="metric-value text-success">{{ result.line_count }}</div>
+                <div class="metric-label">Lines</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card glass-card">
+                <div class="metric-value {% if result.confidence > 75 %}text-success{% else %}text-warning{% endif %}">
+                    {{ result.confidence }}%
+                </div>
+                <div class="metric-label">OCR Confidence</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Results Dual View -->
+    <div class="row g-4 mb-4">
+        <!-- Original Document Image -->
+        <div class="col-lg-6">
+            <div class="glass-card h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold mb-0 text-secondary"><i class="bi bi-image me-2"></i>Original Uploaded Photo</h6>
+                    {% if result.contour_found %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                            <i class="bi bi-bounding-box me-1"></i> 4-Point Boundary Found
+                        </span>
+                    {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary rounded-pill">
+                            <i class="bi bi-crop me-1"></i> Auto-Crop Fallback
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="image-preview-container bg-dark text-center rounded-3">
+                    <img src="{{ url_for('serve_upload', filename=result.orig_filename) }}" alt="Original Photo" class="img-fluid">
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanned & Perspective Warped Image -->
+        <div class="col-lg-6">
+            <div class="glass-card h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-magic me-2"></i>Scanned & Perspective Corrected</h6>
+                    <span class="badge bg-primary rounded-pill text-uppercase">{{ result.enhancement_mode }}</span>
+                </div>
+                <div class="image-preview-container bg-dark text-center rounded-3">
+                    <img src="{{ url_for('serve_processed', filename=result.scanned_filename) }}" alt="Scanned Document" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Extracted Text Card -->
+    <div class="glass-card p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="fw-bold mb-0"><i class="bi bi-file-earmark-font me-2 text-primary"></i>Extracted Document Text</h5>
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" id="copyTextBtn">
+                <i class="bi bi-clipboard me-1"></i> Copy Text
+            </button>
+        </div>
+        
+        {% if result.ocr_error %}
+            <div class="alert alert-warning mb-3 rounded-3 small">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ result.ocr_error }}
+            </div>
+        {% endif %}
+        
+        <div class="text-result-box" id="extractedTextContent">
+{% if result.text %}{{ result.text }}{% else %}No readable text was detected on this document.{% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

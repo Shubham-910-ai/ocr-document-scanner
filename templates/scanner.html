@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Document Scanner & OCR Workspace{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Title -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-scanner text-primary me-2"></i>Document Scanner Workspace</h2>
+            <p class="text-secondary small mb-0">Upload a document photo or capture live video to remove tilt, sharpen text, and run OCR.</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary rounded-pill" id="startWebcamBtn" data-bs-toggle="modal" data-bs-target="#webcamModal">
+                <i class="bi bi-camera-fill me-1"></i> Live Webcam
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Form Column -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data" id="documentUploadForm">
+                    {{ form.csrf_token }}
+                    
+                    <!-- Drag and Drop Dropzone -->
+                    <div class="upload-dropzone mb-4" id="uploadDropzone">
+                        <i class="bi bi-cloud-arrow-up-fill dropzone-icon"></i>
+                        <h5 class="fw-bold mb-1">Drag and Drop Document File Here</h5>
+                        <p class="text-secondary small mb-3">Supports JPG, JPEG, PNG, BMP, TIFF, and PDF (Max 16MB)</p>
+                        
+                        <div class="d-inline-block">
+                            <span class="btn btn-primary rounded-pill px-4 shadow-sm">
+                                <i class="bi bi-folder2-open me-2"></i> Browse Computer
+                            </span>
+                        </div>
+                        
+                        <!-- Hidden Real Input -->
+                        {{ form.document(class="d-none") }}
+                        <div id="fileNameDisplay" class="mt-3 fw-bold text-primary small"></div>
+                    </div>
+
+                    <!-- Live File Preview Container -->
+                    <div id="previewContainer" class="image-preview-container mb-4 d-none">
+                        <img id="imagePreview" src="" alt="Selected Preview">
+                    </div>
+
+                    <!-- Enhancement & OCR Settings Accordion -->
+                    <div class="card border-0 bg-body-tertiary mb-4 rounded-3">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-sliders me-2"></i>Image Processing & OCR Settings</h6>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Enhancement Mode</label>
+                                    {{ form.enhancement_mode(class="form-select") }}
+                                    <div class="form-text extra-small">Choose threshold technique for contrast optimization.</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">OCR Language</label>
+                                    {{ form.language(class="form-select") }}
+                                    <div class="form-text extra-small">Language pack for text recognition.</div>
+                                </div>
+                                
+                                <div class="col-12 mt-3">
+                                    <div class="d-flex flex-wrap gap-4">
+                                        <div class="form-check form-switch">
+                                            {{ form.auto_rotate(class="form-check-input") }}
+                                            <label class="form-check-label small fw-semibold" for="auto_rotate">Auto-Deskew / Rotate</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            {{ form.sharpen(class="form-check-input") }}
+                                            <label class="form-check-label small fw-semibold" for="sharpen">Sharpening Kernel</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            {{ form.noise_reduction(class="form-check-input") }}
+                                            <label class="form-check-label small fw-semibold" for="noise_reduction">Noise Reduction Filter</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Action Button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow">
+                            <i class="bi bi-magic me-2"></i> Scan & Perform OCR
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar / History Column -->
+        <div class="col-lg-4">
+            <!-- Tesseract Status Card -->
+            <div class="glass-card p-4 mb-4">
+                <h6 class="fw-bold mb-3 d-flex align-items-center">
+                    <i class="bi bi-cpu text-primary me-2"></i> System OCR Engine Status
+                </h6>
+                {% if tesseract_available %}
+                    <div class="alert alert-success py-2 px-3 mb-0 rounded-3 small">
+                        <i class="bi bi-check-circle-fill me-1"></i> Tesseract OCR Engine Ready
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning py-2 px-3 mb-0 rounded-3 small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Tesseract binary not detected in PATH. Scanner operates in demo mode.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Recent Scans History -->
+            <div class="glass-card p-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Scan History</h6>
+                {% if recent_scans %}
+                    <div class="list-group list-group-flush border-0">
+                        {% for scan in recent_scans %}
+                            <a href="{{ url_for('result', scan_id=scan.id) }}" class="list-group-item list-group-item-action bg-transparent border-0 px-0 py-2 d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center text-truncate me-2">
+                                    <i class="bi bi-file-earmark-text text-primary me-2 fs-5"></i>
+                                    <div class="text-truncate">
+                                        <div class="small fw-semibold text-truncate">{{ scan.filename }}</div>
+                                        <span class="extra-small text-muted">{{ scan.word_count }} words &bull; {{ scan.confidence }}% conf</span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill">View</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-secondary small mb-0">No recent scans in this session. Upload a document to start!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HTML5 Webcam Capture Modal -->
+<div class="modal fade" id="webcamModal" tabindex="-1" aria-labelledby="webcamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-card border-0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="webcamModalLabel"><i class="bi bi-camera-fill me-2 text-primary"></i>Live Webcam Scanner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" id="stopWebcamBtn" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="position-relative bg-black rounded-3 overflow-hidden" style="min-height: 360px;">
+                    <video id="webcamVideo" class="w-100 h-100" style="object-fit: cover;" autoplay playsinline></video>
+                    <canvas id="webcamCanvas" class="d-none"></canvas>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">Hold document flat in front of camera with good lighting.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-primary rounded-pill px-4 shadow" id="captureWebcamBtn" disabled>
+                    <i class="bi bi-camera-fill me-1"></i> Snap & Process Photo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
