@@ -150,6 +150,13 @@ function initWebcam() {
             const imageDataUrl = webcamCanvas.toDataURL('image/png');
             stopWebcamStream();
             
+            // Hide camera modal backdrop immediately
+            const modalEl = document.getElementById('webcamModal');
+            if (modalEl) {
+                const bsModal = bootstrap.Modal.getInstance(modalEl);
+                if (bsModal) bsModal.hide();
+            }
+            
             const colorModeSelect = document.getElementById('webcamColorMode');
             const selectedMode = colorModeSelect ? colorModeSelect.value : 'color';
 

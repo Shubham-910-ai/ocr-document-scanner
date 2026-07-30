@@ -168,6 +168,13 @@ def webcam_upload():
         if img is None:
             return jsonify({'success': False, 'error': 'Failed to decode webcam frame'}), 400
             
+        # Fast optimization: Downscale high-resolution camera images (e.g. 4K/12MP mobile snapshots)
+        h, w = img.shape[:2]
+        max_dim = max(h, w)
+        if max_dim > 1400:
+            scale = 1400.0 / max_dim
+            img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
         scan_id = str(uuid.uuid4())[:8]
         raw_path = os.path.join(Config.UPLOAD_FOLDER, f"{scan_id}_webcam.png")
         cv2.imwrite(raw_path, img)
