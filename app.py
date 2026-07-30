@@ -172,10 +172,13 @@ def webcam_upload():
         raw_path = os.path.join(Config.UPLOAD_FOLDER, f"{scan_id}_webcam.png")
         cv2.imwrite(raw_path, img)
         
-        # Process document with default adaptive pipeline
+        enhancement_mode = data.get('mode', 'color')
+        ocr_language = data.get('language', 'eng+hin')
+        
+        # Process document with selected color mode pipeline
         warped, contour_found = DocumentScanner.detect_document(img)
         warped = DocumentScanner.auto_rotate(warped)
-        processed = DocumentScanner.enhance_image(warped, mode='adaptive', sharpen=True, noise_reduction=True)
+        processed = DocumentScanner.enhance_image(warped, mode=enhancement_mode, sharpen=True, noise_reduction=False)
         
         processed_filename = f"{scan_id}_scanned.png"
         processed_path = os.path.join(Config.PROCESSED_FOLDER, processed_filename)
@@ -185,17 +188,17 @@ def webcam_upload():
         orig_path = os.path.join(Config.UPLOAD_FOLDER, orig_filename)
         cv2.imwrite(orig_path, img)
         
-        # Execute OCR
-        ocr_res = OCREngine.process_ocr(processed, lang='eng')
+        # Execute OCR with bilingual support
+        ocr_res = OCREngine.process_ocr(processed, lang=ocr_language)
         
         result_payload = {
             'id': scan_id,
-            'filename': 'Webcam_Capture.png',
+            'filename': 'Camera_Capture.png',
             'orig_filename': orig_filename,
             'scanned_filename': processed_filename,
             'contour_found': contour_found,
-            'enhancement_mode': 'adaptive',
-            'language': 'English',
+            'enhancement_mode': enhancement_mode,
+            'language': Config.SUPPORTED_LANGUAGES.get(ocr_language, ocr_language),
             'text': ocr_res.get('text', ''),
             'confidence': ocr_res.get('confidence', 0.0),
             'char_count': ocr_res.get('char_count', 0),

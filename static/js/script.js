@@ -146,15 +146,19 @@ function initWebcam() {
             webcamCanvas.height = webcamVideo.videoHeight;
             context.drawImage(webcamVideo, 0, 0, webcamCanvas.width, webcamCanvas.height);
             
-            const imageDataUrl = webcamCanvas.toDataURL('image/png');
-            stopWebcamStream();
-            
+            const colorModeSelect = document.getElementById('webcamColorMode');
+            const selectedMode = colorModeSelect ? colorModeSelect.value : 'color';
+
             // Send captured image to backend API
-            showLoadingOverlay("Scanning Webcam Capture...");
+            showLoadingOverlay("Processing Camera Document & Generating PDF...");
             fetch('/api/webcam-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageDataUrl })
+                body: JSON.stringify({ 
+                    image: imageDataUrl,
+                    mode: selectedMode,
+                    language: 'eng+hin'
+                })
             })
             .then(res => res.json())
             .then(data => {
