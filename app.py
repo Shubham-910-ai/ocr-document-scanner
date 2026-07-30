@@ -220,7 +220,9 @@ def webcam_upload():
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f"Processing error: {str(e)}"}), 200
 
 
 @app.route('/result/<scan_id>')

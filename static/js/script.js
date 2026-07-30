@@ -52,14 +52,12 @@ function initDropzone() {
 
     if (!dropzone || !fileInput) return;
 
-    // Trigger click on file input when dropzone clicked
     dropzone.addEventListener('click', (e) => {
         if (e.target !== fileInput) {
             fileInput.click();
         }
     });
 
-    // Drag events
     ['dragenter', 'dragover'].forEach(eventName => {
         dropzone.addEventListener(eventName, (e) => {
             e.preventDefault();
@@ -76,7 +74,6 @@ function initDropzone() {
         }, false);
     });
 
-    // Handle File Drop
     dropzone.addEventListener('drop', (e) => {
         const dt = e.dataTransfer;
         const files = dt.files;
@@ -86,7 +83,6 @@ function initDropzone() {
         }
     });
 
-    // Handle File Selection via Browse Button
     fileInput.addEventListener('change', (e) => {
         if (fileInput.files.length > 0) {
             handleFilePreview(fileInput.files[0]);
@@ -123,15 +119,16 @@ function initWebcam() {
     const stopWebcamBtn = document.getElementById('stopWebcamBtn');
     const webcamVideo = document.getElementById('webcamVideo');
     const webcamCanvas = document.getElementById('webcamCanvas');
-    const webcamModal = document.getElementById('webcamModal');
 
     if (!startWebcamBtn || !webcamVideo) return;
 
     startWebcamBtn.addEventListener('click', async () => {
         try {
-            webcamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
+            webcamStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
+            });
             webcamVideo.srcObject = webcamStream;
-            webcamVideo.play();
+            await webcamVideo.play();
             if (captureWebcamBtn) captureWebcamBtn.disabled = false;
         } catch (err) {
             showToast('Webcam Error', 'Unable to access camera: ' + err.message, 'danger');
@@ -140,27 +137,48 @@ function initWebcam() {
 
     if (captureWebcamBtn) {
         captureWebcamBtn.addEventListener('click', () => {
-            if (!webcamStream) return;
+            if (!webcamStream || !webcamVideo.videoWidth || !webcamVideo.videoHeight) {
+                showToast('Camera Notice', 'Camera frame is not ready. Please wait a second and try again.', 'warning');
+                return;
+            }
+
             const context = webcamCanvas.getContext('2d');
             webcamCanvas.width = webcamVideo.videoWidth;
             webcamCanvas.height = webcamVideo.videoHeight;
             context.drawImage(webcamVideo, 0, 0, webcamCanvas.width, webcamCanvas.height);
             
+            const imageDataUrl = webcamCanvas.toDataURL('image/png');
+            stopWebcamStream();
+            
             const colorModeSelect = document.getElementById('webcamColorMode');
             const selectedMode = colorModeSelect ? colorModeSelect.value : 'color';
 
-            // Send captured image to backend API
+            // Send captured image to backend API with robust JSON error handling
             showLoadingOverlay("Processing Camera Document & Generating PDF...");
+            
             fetch('/api/webcam-upload', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ 
                     image: imageDataUrl,
                     mode: selectedMode,
                     language: 'eng+hin'
                 })
             })
-            .then(res => res.json())
+            .then(res => {
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    return res.json();
+                } else {
+                    return res.text().then(text => {
+                        console.error("Server HTML error output:", text);
+                        throw new Error("Server error during image processing. Please try again.");
+                    });
+                }
+            })
             .then(data => {
                 hideLoadingOverlay();
                 if (data.success && data.redirect_url) {
@@ -171,7 +189,7 @@ function initWebcam() {
             })
             .catch(err => {
                 hideLoadingOverlay();
-                showToast('Network Error', err.message, 'danger');
+                showToast('Scan Error', err.message, 'danger');
             });
         });
     }
@@ -189,7 +207,7 @@ function stopWebcamStream() {
 }
 
 /**
- * Copy Extracted Text to Clipboard with Toast Notification
+ * Copy Extracted Text to Clipboard
  */
 function initCopyText() {
     const copyBtn = document.getElementById('copyTextBtn');
