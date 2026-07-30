@@ -153,9 +153,9 @@ def upload_file():
 def webcam_upload():
     """API endpoint for HTML5 Webcam capture payload (base64 image)."""
     try:
-        data = request.get_json()
+        data = request.get_json(force=True, silent=True)
         if not data or 'image' not in data:
-            return jsonify({'success': False, 'error': 'No image data provided'}), 400
+            return jsonify({'success': False, 'error': 'No image data received from camera.'}), 200
             
         image_data = data['image']
         if ',' in image_data:
@@ -166,7 +166,7 @@ def webcam_upload():
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if img is None:
-            return jsonify({'success': False, 'error': 'Failed to decode webcam frame'}), 400
+            return jsonify({'success': False, 'error': 'Failed to decode camera frame. Please try again.'}), 200
             
         # Fast optimization: Downscale high-resolution camera images (e.g. 4K/12MP mobile snapshots)
         h, w = img.shape[:2]
