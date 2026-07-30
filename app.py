@@ -1,5 +1,6 @@
 import os
 import uuid
+import json
 import base64
 import cv2
 import numpy as np
@@ -17,11 +18,38 @@ from utils import (
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Ensure upload, processed, and download storage directories exist
+# Ensure upload, processed, download, and tessdata directories exist
 ensure_directories()
 
-# In-memory session store for scan results (id -> result_dict)
+# In-memory session fallback store for scan results
 SCAN_STORE = {}
+
+def save_scan_result(scan_id, payload):
+    """Saves scan result to in-memory store AND persistent JSON file on disk."""
+    SCAN_STORE[scan_id] = payload
+    try:
+        json_path = os.path.join(Config.PROCESSED_FOLDER, f"{scan_id}.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving scan JSON: {e}")
+
+def get_scan_result(scan_id):
+    """Retrieves scan result from memory or persistent JSON file."""
+    if scan_id in SCAN_STORE:
+        return SCAN_STORE[scan_id]
+        
+    try:
+        json_path = os.path.join(Config.PROCESSED_FOLDER, f"{scan_id}.json")
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                SCAN_STORE[scan_id] = data
+                return data
+    except Exception as e:
+        print(f"Error loading scan JSON: {e}")
+        
+    return None
 
 @app.context_processor
 def inject_globals():
@@ -40,9 +68,12 @@ def index():
 def scanner():
     """Scanner Workspace Route."""
     form = DocumentUploadForm()
-    # Retrieve recent history from session
     history_ids = session.get('scan_history', [])
-    recent_scans = [SCAN_STORE[sid] for sid in history_ids if sid in SCAN_STORE][-5:]
+    recent_scans = []
+    for sid in reversed(history_ids[-5:]):
+        sdata = get_scan_result(sid)
+        if sdata:
+            recent_scans.append(sdata)
     return render_template('scanner.html', form=form, recent_scans=recent_scans)
 
 @app.route('/upload', methods=['POST'])
@@ -72,7 +103,7 @@ def upload_file():
     raw_saved_path = os.path.join(Config.UPLOAD_FOLDER, f"{scan_id}_raw{ext}")
     file.save(raw_saved_path)
     
-    # Handle PDF files by converting 1st page to PNG
+    # Handle PDF files by converting 1st page to PNG via pypdfium2
     if ext == '.pdf':
         image_path = process_pdf_input(raw_saved_path)
         if not image_path:
@@ -90,14 +121,21 @@ def upload_file():
         flash("Error loading image for processing.", "danger")
         return redirect(url_for('scanner'))
 
-    # 1. Computer Vision Pipeline: Boundary Detection & Perspective Warp
+    # Fast optimization: Downscale high-res images
+    h, w = input_image.shape[:2]
+    max_dim = max(h, w)
+    if max_dim > 1400:
+        scale = 1400.0 / max_dim
+        input_image = cv2.resize(input_image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
+    # 1. Edge Detection & Perspective Warp
     warped_image, contour_found = DocumentScanner.detect_document(input_image)
     
-    # 2. Auto-rotate / Deskew (if requested)
+    # 2. Auto-rotate / Deskew
     if form.auto_rotate.data:
         warped_image = DocumentScanner.auto_rotate(warped_image)
         
-    # 3. Readability Enhancements & Thresholding
+    # 3. Readability Enhancements
     enhancement_mode = form.enhancement_mode.data
     processed_image = DocumentScanner.enhance_image(
         warped_image,
@@ -106,21 +144,19 @@ def upload_file():
         noise_reduction=form.noise_reduction.data
     )
 
-    # Save processed image to disk
+    # Save images to disk
     processed_filename = f"{scan_id}_scanned.png"
     processed_path = os.path.join(Config.PROCESSED_FOLDER, processed_filename)
     cv2.imwrite(processed_path, processed_image)
     
-    # Save original preview image
     orig_filename = f"{scan_id}_orig.png"
     orig_path = os.path.join(Config.UPLOAD_FOLDER, orig_filename)
     cv2.imwrite(orig_path, input_image)
 
-    # 4. Perform Tesseract OCR
+    # 4. Perform Tesseract OCR with English + Hindi bilingual support
     ocr_language = form.language.data
     ocr_res = OCREngine.process_ocr(processed_image, lang=ocr_language)
 
-    # Prepare Scan Result Payload
     result_payload = {
         'id': scan_id,
         'filename': filename,
@@ -138,8 +174,8 @@ def upload_file():
         'ocr_error': ocr_res.get('error')
     }
 
-    # Store in memory SCAN_STORE & session history
-    SCAN_STORE[scan_id] = result_payload
+    # Save persistent result & update session history
+    save_scan_result(scan_id, result_payload)
     history = session.get('scan_history', [])
     if scan_id not in history:
         history.append(scan_id)
@@ -168,7 +204,7 @@ def webcam_upload():
         if img is None:
             return jsonify({'success': False, 'error': 'Failed to decode camera frame. Please try again.'}), 200
             
-        # Fast optimization: Downscale high-resolution camera images (e.g. 4K/12MP mobile snapshots)
+        # Fast optimization: Downscale high-resolution camera images
         h, w = img.shape[:2]
         max_dim = max(h, w)
         if max_dim > 1400:
@@ -215,7 +251,7 @@ def webcam_upload():
             'ocr_error': ocr_res.get('error')
         }
         
-        SCAN_STORE[scan_id] = result_payload
+        save_scan_result(scan_id, result_payload)
         history = session.get('scan_history', [])
         if scan_id not in history:
             history.append(scan_id)
@@ -235,7 +271,7 @@ def webcam_upload():
 @app.route('/result/<scan_id>')
 def result(scan_id):
     """OCR and Document Scan Result Dashboard Route."""
-    scan_data = SCAN_STORE.get(scan_id)
+    scan_data = get_scan_result(scan_id)
     if not scan_data:
         flash("Scan result not found or expired.", "warning")
         return redirect(url_for('scanner'))
@@ -246,7 +282,7 @@ def result(scan_id):
 @app.route('/download/<file_type>/<scan_id>')
 def download(file_type, scan_id):
     """Download handler for Scanned Image, TXT, or ReportLab PDF."""
-    scan_data = SCAN_STORE.get(scan_id)
+    scan_data = get_scan_result(scan_id)
     if not scan_data:
         flash("Requested file was not found.", "danger")
         return redirect(url_for('scanner'))
@@ -317,15 +353,21 @@ def contact():
 # Custom Error Handlers
 @app.errorhandler(404)
 def page_not_found(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'error': 'API endpoint not found'}), 200
     return render_template('base.html', content="<div class='container py-5 text-center'><h2>404 - Page Not Found</h2><p>The requested URL was not found on this server.</p><a href='/' class='btn btn-primary mt-3'>Back to Home</a></div>"), 404
 
 @app.errorhandler(413)
 def request_entity_too_large(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'error': 'Uploaded payload exceeds 16MB limit.'}), 200
     flash("Uploaded file exceeds the maximum 16MB limit.", "danger")
     return redirect(url_for('scanner'))
 
 @app.errorhandler(500)
 def internal_server_error(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'error': 'Internal server error during processing.'}), 200
     return render_template('base.html', content="<div class='container py-5 text-center'><h2>500 - Internal Server Error</h2><p>An unexpected server error occurred.</p><a href='/' class='btn btn-primary mt-3'>Back to Home</a></div>"), 500
 
 if __name__ == '__main__':
