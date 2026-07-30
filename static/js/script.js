@@ -109,37 +109,45 @@ function initDropzone() {
 }
 
 /**
- * HTML5 Webcam Stream and Capture (Handles multiple sequential captures cleanly)
+ * HTML5 Webcam Stream and Capture
  */
 let webcamStream = null;
+let isStartingCamera = false;
 
 function initWebcam() {
-    const startWebcamBtn = document.getElementById('startWebcamBtn');
     const captureWebcamBtn = document.getElementById('captureWebcamBtn');
     const stopWebcamBtn = document.getElementById('stopWebcamBtn');
     const webcamVideo = document.getElementById('webcamVideo');
     const webcamCanvas = document.getElementById('webcamCanvas');
     const webcamModal = document.getElementById('webcamModal');
 
-    if (!startWebcamBtn || !webcamVideo) return;
+    if (!webcamVideo) return;
 
     async function startCamera() {
-        if (webcamStream) return;
+        if (webcamStream || isStartingCamera) return;
+        isStartingCamera = true;
         try {
-            webcamStream = await navigator.mediaDevices.getUserMedia({ 
+            const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
             });
-            webcamVideo.srcObject = webcamStream;
-            await webcamVideo.play();
+            webcamStream = stream;
+            webcamVideo.srcObject = stream;
+            try {
+                await webcamVideo.play();
+            } catch (playErr) {
+                console.log("Play request handled:", playErr);
+            }
             if (captureWebcamBtn) captureWebcamBtn.disabled = false;
         } catch (err) {
-            showToast('Camera Error', 'Unable to access camera: ' + err.message, 'danger');
+            if (err.name !== 'AbortError') {
+                showToast('Camera Error', 'Unable to access camera: ' + err.message, 'danger');
+            }
+        } finally {
+            isStartingCamera = false;
         }
     }
 
-    startWebcamBtn.addEventListener('click', startCamera);
-
-    // Also auto-start when Bootstrap modal opens
+    // Auto-start camera cleanly when Bootstrap modal is shown
     if (webcamModal) {
         webcamModal.addEventListener('shown.bs.modal', startCamera);
         webcamModal.addEventListener('hidden.bs.modal', stopWebcamStream);
@@ -221,6 +229,7 @@ function stopWebcamStream() {
     if (webcamVideo) {
         webcamVideo.srcObject = null;
     }
+    isStartingCamera = false;
 }
 
 /**
